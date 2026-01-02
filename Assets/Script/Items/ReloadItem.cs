@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class HealingItem : MonoBehaviour
+public class ReloadItem : MonoBehaviour
 {
     [SerializeField] private Animator animator;
     
@@ -13,7 +13,7 @@ public class HealingItem : MonoBehaviour
         {
             Debug.Log("healing");
             animator.SetTrigger(Animator.StringToHash("IsCollected"));
-            other.GetComponent<PlayerController>().ApplyHeal(5);
+            other.GetComponent<PlayerController>().ApplyHeal(1);
             Destroy(gameObject,2f);
         }
     }

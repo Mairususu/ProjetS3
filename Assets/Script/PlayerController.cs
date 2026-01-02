@@ -2,41 +2,35 @@ using System;
 using System.Collections;
 using UnityEngine;
 
-public class PlayerController : MonoBehaviour
+public class PlayerController : MonoBehaviour,IDamageable
 {
     [Header("Références")]
     [SerializeField] private Camera cam;
     [SerializeField] private CharacterController characterController;
     [SerializeField] private Animator animator;
-
-    [Header("Stats plzyer")]
     [SerializeField] private Shooter playerShooter;
+    [SerializeField] private Bullet bulletPrefab;
+    [SerializeField] private PlayerUI playerUI;
+    
     [Header("Déplacement")]
     [SerializeField] private float walkSpeed = 5f;
     [SerializeField] private float runSpeed = 8f;
     [SerializeField] private float jumpHeight = 2f;
     [SerializeField] private float gravity = -9.81f;
     
-    [Header("Distance et Position Caméra")]
+    [Header("Caméra")]
     [SerializeField] private float distance = 5f;
     [SerializeField] private float minDistance = 2f;
     [SerializeField] private float maxDistance = 10f;
-    [SerializeField] private float heightOffset = 1.5f;
-    
-    
-    [Header("Rotation du personnage")]
-    [SerializeField] private float playerRotationSpeed = 10f;
-    [SerializeField] private float minVerticalAngle = -20f;
-    [SerializeField] private float maxVerticalAngle = 60f;
-    
-    [Header("Lissage")]
-    [SerializeField] private float rotationSmoothing = 12f;
-    
-    [Header("Collision Caméra")]
     [SerializeField] private bool checkCollisions = true;
     [SerializeField] private float collisionRadius = 0.3f;
     [SerializeField] private LayerMask collisionLayers = -1;
     
+    [Header("Rotation du personnage")]
+    [SerializeField] private float playerRotationSpeed = 10f;
+    [SerializeField] private bool rotateWithCamera = true; 
+    [SerializeField] private float minVerticalAngle = -20f;
+    [SerializeField] private float maxVerticalAngle = 60f;
     // Variables privées - Caméra
     private float rotationX = 0f;
     private float rotationY = 20f;
@@ -48,20 +42,11 @@ public class PlayerController : MonoBehaviour
     // Variables privées - Déplacement
     private Vector3 velocity;
     private bool jumpEnable=true;
-    private bool shootEnable=true;
+    private bool shootEnable = true;
     private Vector3 moveDirection;
     
     void Start()
     {
-        // Récupérer le CharacterController si non assigné
-        if (characterController == null)
-        {
-            characterController = GetComponent<CharacterController>();
-            if (characterController == null)
-            {
-                Debug.LogError("CharacterController manquant ! Ajoute un CharacterController au joueur.");
-            }
-        }
         
         // Initialisation caméra
         currentDistance = distance;
@@ -76,9 +61,9 @@ public class PlayerController : MonoBehaviour
             smoothRotationY = rotationY;
         }
         
-        // Verrouiller le curseur
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
+        InitUI();
     }
     
     void Update()
@@ -130,7 +115,7 @@ public class PlayerController : MonoBehaviour
             Cursor.visible = false;
         }
 
-        if (Input.GetMouseButtonDown(1)&& shootEnable)
+        if (Input.GetMouseButtonDown(1) && shootEnable)
         {
             Shoot();
             StartCoroutine(ShootCorr());
@@ -139,19 +124,11 @@ public class PlayerController : MonoBehaviour
 
     #region Movement
 
-    
-
     void HandleMovement()
     {
         if (characterController == null) return;
         
         
-        
-        // Réinitialiser la vélocité verticale si au sol
-        if (velocity.y < 0 && jumpEnable)
-        {
-            velocity.y = 0;
-        }
         
         // Récupérer les inputs
         float horizontal = Input.GetAxis("Horizontal");
@@ -185,8 +162,10 @@ public class PlayerController : MonoBehaviour
         }
         
         // Appliquer la gravité
-        velocity.y += gravity*Time.deltaTime;
+        velocity.y += gravity * Time.deltaTime;
         characterController.Move(velocity * Time.deltaTime);
+        
+        // Animation
         if (horizontal == 0f && vertical == 0f)
         {
             animator.SetBool("isMoving", false);
@@ -204,10 +183,8 @@ public class PlayerController : MonoBehaviour
         while (jumpTime < 2f)
         {
             yield return new WaitForEndOfFrame();
-            jumpTime+= Time.deltaTime;
-            Debug.Log("Jump Time: " + jumpTime);
+            jumpTime += Time.deltaTime;
         }
-
         jumpEnable = true;
     }
     #endregion
@@ -215,15 +192,21 @@ public class PlayerController : MonoBehaviour
     #region Rotation et Caméra
     void RotatePlayer()
     {
-        // Ne tourner le personnage que s'il se déplace
-        if (moveDirection.magnitude > 0.1f)
+        if (rotateWithCamera)
         {
-            // Calculer l'angle de rotation basé sur la direction de déplacement
-            float targetAngle = Mathf.Atan2(moveDirection.x, moveDirection.z) * Mathf.Rad2Deg;
-            Quaternion targetRotation = Quaternion.Euler(0, targetAngle, 0);
-            
-            // Appliquer la rotation au joueur de manière lissée
+            // Le personnage tourne TOUJOURS avec la caméra (même immobile)
+            Quaternion targetRotation = Quaternion.Euler(0, rotationX, 0);
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, playerRotationSpeed * Time.deltaTime);
+        }
+        else
+        {
+            // Ancien comportement : ne tourner que si le personnage se déplace
+            if (moveDirection.magnitude > 0.1f)
+            {
+                float targetAngle = Mathf.Atan2(moveDirection.x, moveDirection.z) * Mathf.Rad2Deg;
+                Quaternion targetRotation = Quaternion.Euler(0, targetAngle, 0);
+                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, playerRotationSpeed * Time.deltaTime);
+            }
         }
     }
     
@@ -232,8 +215,8 @@ public class PlayerController : MonoBehaviour
         if (cam == null) return;
         
         // Lisser la rotation
-        smoothRotationX = Mathf.Lerp(smoothRotationX, rotationX, rotationSmoothing * Time.deltaTime);
-        smoothRotationY = Mathf.Lerp(smoothRotationY, rotationY, rotationSmoothing * Time.deltaTime);
+        smoothRotationX = Mathf.Lerp(smoothRotationX, rotationX, 10 * Time.deltaTime);
+        smoothRotationY = Mathf.Lerp(smoothRotationY, rotationY, 10 * Time.deltaTime);
         
         // Lisser la distance
         currentDistance = Mathf.Lerp(currentDistance, targetDistance, 10f * Time.deltaTime);
@@ -242,7 +225,7 @@ public class PlayerController : MonoBehaviour
         Quaternion rotation = Quaternion.Euler(smoothRotationY, smoothRotationX, 0);
         
         // Position du pivot (au-dessus du joueur)
-        Vector3 pivotPosition = transform.position + Vector3.up * heightOffset;
+        Vector3 pivotPosition = transform.position + Vector3.up * 1.5f;
         
         // Direction de la caméra (toujours derrière)
         Vector3 direction = rotation * -Vector3.forward;
@@ -267,26 +250,11 @@ public class PlayerController : MonoBehaviour
     }
     #endregion
     
-
     #region Interaction
 
-    public void ApplyDamage(int value)
+    void InitUI()
     {
-        playerShooter.ApplyDamage(value);
-        
-        animator.SetTrigger(Animator.StringToHash("Dying"));
-    }
-    
-
-    public void ApplyHeal(int value)
-    {
-        playerShooter.ApplyHeal(value);
-    }
-
-    public void Shoot()
-    {
-        playerShooter.Shoot();
-        animator.SetTrigger("Shoot");
+        playerUI.UpdateLife(playerShooter.lifePoints,playerShooter.maxLifePoints);
     }
 
     IEnumerator ShootCorr()
@@ -296,16 +264,41 @@ public class PlayerController : MonoBehaviour
         while (shootTime < playerShooter.shootDelay)
         {
             yield return new WaitForEndOfFrame();
-            shootTime+= Time.deltaTime;
-            Debug.Log("Shoot Time: " + shootTime);
+            shootTime += Time.deltaTime;
         }
-
         shootEnable = true;
     }
-
-    void OnCollisionEnter(Collision collision)
+    public void ApplyDamage(int value)
     {
-        
+        playerShooter.lifePoints -= value;
+        playerUI.UpdateLife(playerShooter.lifePoints,playerShooter.maxLifePoints);
+
+        if (playerShooter.lifePoints <= 0)
+        {
+            animator.SetTrigger("Dying");
+            StartCoroutine(DyeCoroutine());
+        }
+    }
+
+    IEnumerator DyeCoroutine()
+    {
+        yield return new WaitForSeconds(0.5f);
+        Destroy(gameObject);
+    }
+
+    public void ApplyHeal(int value)
+    {
+        playerShooter.lifePoints += value;
+        if(playerShooter.lifePoints >= playerShooter.maxLifePoints) playerShooter.lifePoints = playerShooter.maxLifePoints;
+        playerUI.UpdateLife(playerShooter.lifePoints, playerShooter.maxLifePoints);
+    }
+
+    public void Shoot()
+    {
+        var direction = transform.rotation * Vector3.forward;
+        Bullet bull = Instantiate(bulletPrefab, transform.position + direction+Vector3.up, transform.rotation).GetComponent<Bullet>();
+        bull.Initialize(playerShooter.damage, playerShooter.bullSpeed);
+        animator.SetTrigger("Shoot");
     }
     #endregion
 }

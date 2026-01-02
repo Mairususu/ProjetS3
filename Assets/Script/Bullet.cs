@@ -13,13 +13,9 @@ public class Bullet : MonoBehaviour
 
     private void OnCollisionEnter(Collision other)
     {
-        if (other.gameObject.TryGetComponent<PlayerController>(out var damageablePlayer))
+        if (other.gameObject.TryGetComponent<IDamageable>(out var damageable))
         {
-            damageablePlayer.ApplyDamage(damage);
-        }
-        else if (other.gameObject.TryGetComponent<PlayerController>(out var damageableEnemy))
-        {
-            damageableEnemy.ApplyDamage(damage);
+            damageable.ApplyDamage(damage);
         }
 
         var explosion = Instantiate(explosionPrefab, other.contacts[0].point, Quaternion.identity);
