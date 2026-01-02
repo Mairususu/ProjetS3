@@ -1,9 +1,6 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-public class DamageItem : MonoBehaviour
+public class SpeedItem : MonoBehaviour
 {
     [SerializeField] private Animator animator;
     
@@ -11,9 +8,9 @@ public class DamageItem : MonoBehaviour
     {
         if (other.CompareTag("Player"))
         {
-            Debug.Log("Damage");
+            Debug.Log("Speed");
             animator.SetTrigger(Animator.StringToHash("Collect"));
-            other.GetComponent<PlayerController>().EnhanceDamage();
+            other.GetComponent<PlayerController>().EnhanceSpeed();
             Destroy(gameObject,2f);
         }
     }

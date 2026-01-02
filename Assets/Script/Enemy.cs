@@ -18,13 +18,13 @@ public class Enemy : MonoBehaviour, IDamageable
     
     [Header("Statistique")]
     [SerializeField] private float attackRange = 10f; 
-    [SerializeField] private float fireRate = 1f;
+    [SerializeField] private float shootDelay=2f;
     [SerializeField] private float bulletSpeed;
     [SerializeField] private int damage;
     [SerializeField] private LayerMask obstacleMask;
     
     // Variables privées
-    private float nextFireTime;
+    private bool canFire;
     private float pathUpdateTimer;
     private bool hasLineOfSight = false;
     private bool dead;
@@ -45,6 +45,14 @@ public class Enemy : MonoBehaviour, IDamageable
             return;
         }
         dead = false;
+        canFire = true;
+    }
+
+    public void Initialize(float Life, float bulletSpeed, int damage)
+    {
+        lifepoint = Life;
+        this.bulletSpeed = bulletSpeed;
+        this.damage = damage;
     }
     
     void Update()
@@ -88,10 +96,9 @@ public class Enemy : MonoBehaviour, IDamageable
         agent.velocity = Vector3.zero;
         
         // Tirer si ligne de vue dégagée
-        if (hasLineOfSight && Time.time >= nextFireTime)
+        if (hasLineOfSight && canFire)
         {
             Fire();
-            nextFireTime = Time.time + (1f / fireRate);
         }
     }
     
@@ -127,6 +134,19 @@ public class Enemy : MonoBehaviour, IDamageable
         Bullet bullet = Instantiate(bulletPrefab, transform.position + direction+Vector3.up, transform.rotation).GetComponent<Bullet>();
         bullet.Initialize(damage, bulletSpeed);
         animator.SetTrigger("Shoot");
+        StartCoroutine(ShootCorr());
+    }
+    
+    IEnumerator ShootCorr()
+    {
+        canFire = false;
+        float shootTime = 0f;
+        while (shootTime <shootDelay)
+        {
+            yield return new WaitForEndOfFrame();
+            shootTime += Time.deltaTime;
+        }
+        canFire = true;
     }
     
     void LookAtTarget(Vector3 targetPosition)

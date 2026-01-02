@@ -9,10 +9,10 @@ public class HealingItem : MonoBehaviour
     
     private void OnTriggerEnter(Collider other)
     {
-        if (other.tag == "Player")
+        if (other.CompareTag("Player"))
         {
             Debug.Log("healing");
-            animator.SetTrigger(Animator.StringToHash("IsCollected"));
+            animator.SetTrigger(Animator.StringToHash("Collect"));
             other.GetComponent<PlayerController>().ApplyHeal(5);
             Destroy(gameObject,2f);
         }

@@ -9,11 +9,11 @@ public class ReloadItem : MonoBehaviour
     
     private void OnTriggerEnter(Collider other)
     {
-        if (other.tag == "Player")
+        if (other.CompareTag("Player"))
         {
-            Debug.Log("healing");
-            animator.SetTrigger(Animator.StringToHash("IsCollected"));
-            other.GetComponent<PlayerController>().ApplyHeal(1);
+            Debug.Log("Reload");
+            animator.SetTrigger(Animator.StringToHash("Collect"));
+            other.GetComponent<PlayerController>().EnhanceReload();
             Destroy(gameObject,2f);
         }
     }

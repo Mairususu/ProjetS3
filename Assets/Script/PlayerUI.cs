@@ -7,6 +7,7 @@ public class PlayerUI : MonoBehaviour
     [SerializeField] private TMP_Text lifeText;
     [SerializeField] private TMP_Text damageText;
     [SerializeField] private TMP_Text reloadText;
+    [SerializeField] private TMP_Text speedText;
 
     public void UpdateLife(float currentLife, float maxLife)
     {
@@ -16,11 +17,16 @@ public class PlayerUI : MonoBehaviour
 
     public void UpdateDamage(float damage)
     {
-        
+        damageText.text = damage.ToString()+ "/balle";
     }
 
     public void UpdateReload(float reload)
     {
-        
+        reloadText.text = reload.ToString()+"/balle";
+    }
+
+    public void UpdateSpeed(float speed)
+    {
+        speedText.text = speed.ToString();
     }
 }

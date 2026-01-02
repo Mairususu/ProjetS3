@@ -2,10 +2,10 @@ using System;
 using System.Collections;
 using UnityEngine;
 
-public class PlayerController : MonoBehaviour,IDamageable
+public class PlayerController : MonoBehaviour, IDamageable
 {
     [Header("Références")]
-    [SerializeField] private Camera cam;
+    [SerializeField] private CameraManager cameraPosition; // Nouveau script caméra
     [SerializeField] private CharacterController characterController;
     [SerializeField] private Animator animator;
     [SerializeField] private Shooter playerShooter;
@@ -13,142 +13,64 @@ public class PlayerController : MonoBehaviour,IDamageable
     [SerializeField] private PlayerUI playerUI;
     
     [Header("Déplacement")]
-    [SerializeField] private float walkSpeed = 5f;
-    [SerializeField] private float runSpeed = 8f;
     [SerializeField] private float jumpHeight = 2f;
     [SerializeField] private float gravity = -9.81f;
     
-    [Header("Caméra")]
-    [SerializeField] private float distance = 5f;
-    [SerializeField] private float minDistance = 2f;
-    [SerializeField] private float maxDistance = 10f;
-    [SerializeField] private bool checkCollisions = true;
-    [SerializeField] private float collisionRadius = 0.3f;
-    [SerializeField] private LayerMask collisionLayers = -1;
-    
     [Header("Rotation du personnage")]
     [SerializeField] private float playerRotationSpeed = 10f;
-    [SerializeField] private bool rotateWithCamera = true; 
-    [SerializeField] private float minVerticalAngle = -20f;
-    [SerializeField] private float maxVerticalAngle = 60f;
-    // Variables privées - Caméra
-    private float rotationX = 0f;
-    private float rotationY = 20f;
-    private float smoothRotationX = 0f;
-    private float smoothRotationY = 20f;
-    private float currentDistance;
-    private float targetDistance;
+    [SerializeField] private bool rotateWithCamera = true;
     
     // Variables privées - Déplacement
     private Vector3 velocity;
-    private bool jumpEnable=true;
+    private bool jumpEnable = true;
     private bool shootEnable = true;
     private Vector3 moveDirection;
     
     void Start()
     {
-        
-        // Initialisation caméra
-        currentDistance = distance;
-        targetDistance = distance;
-        
-        if (cam != null)
+        // Récupérer CameraPosition si non assigné
+        if (cameraPosition == null)
         {
-            Vector3 angles = cam.transform.eulerAngles;
-            rotationX = angles.y;
-            rotationY = angles.x;
-            smoothRotationX = rotationX;
-            smoothRotationY = rotationY;
+            cameraPosition = FindObjectOfType<CameraManager>();
+            if (cameraPosition != null)
+            {
+                cameraPosition.SetTarget(transform);
+            }
         }
         
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
         InitUI();
     }
     
     void Update()
     {
-        HandleInput();
         HandleMovement();
     }
     
     void LateUpdate()
     {
         RotatePlayer();
-        CalculateCameraPosition();
     }
     
-    void HandleInput()
-    {
-        // Rotation de la caméra avec la souris
-        if (Cursor.lockState == CursorLockMode.Locked)
-        {
-            float mouseX = Input.GetAxis("Mouse X") * 3f;
-            float mouseY = Input.GetAxis("Mouse Y") * 3f;
-            
-            rotationX += mouseX;
-            rotationY -= mouseY;
-            
-            // Limiter l'angle vertical
-            rotationY = Mathf.Clamp(rotationY, minVerticalAngle, maxVerticalAngle);
-        }
-        
-        // Zoom avec la molette
-        float scroll = Input.GetAxis("Mouse ScrollWheel");
-        if (scroll != 0f)
-        {
-            targetDistance -= scroll * 3f;
-            targetDistance = Mathf.Clamp(targetDistance, minDistance, maxDistance);
-        }
-        
-        // Déverrouiller le curseur avec ESC
-        if (Input.GetKeyDown(KeyCode.Escape))
-        {
-            Cursor.lockState = CursorLockMode.None;
-            Cursor.visible = true;
-        }
-        
-        // Reverrouiller avec clic gauche
-        if (Input.GetMouseButtonDown(0))
-        {
-            Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible = false;
-        }
-
-        if (Input.GetMouseButtonDown(1) && shootEnable)
-        {
-            Shoot();
-            StartCoroutine(ShootCorr());
-        }
-    }
-
     #region Movement
-
+    
     void HandleMovement()
     {
         if (characterController == null) return;
-        
-        
         
         // Récupérer les inputs
         float horizontal = Input.GetAxis("Horizontal");
         float vertical = Input.GetAxis("Vertical");
         
-        // Calculer la direction de déplacement basée sur la caméra
-        Vector3 forward = cam.transform.forward;
-        Vector3 right = cam.transform.right;
-        
-        // Ignorer la composante verticale
-        forward.y = 0;
-        right.y = 0;
-        forward.Normalize();
-        right.Normalize();
+        // Obtenir les directions de la caméra
+        Vector3 forward = cameraPosition.GetForwardDirection();
+        Vector3 right = cameraPosition.GetRightDirection();
         
         // Direction de déplacement
         moveDirection = (forward * vertical + right * horizontal).normalized;
         
         // Vitesse (marche ou course)
-        float currentSpeed = Input.GetKey(KeyCode.LeftShift) ? runSpeed : walkSpeed;
+        float currentSpeed = Input.GetKey(KeyCode.LeftShift) ? 
+            playerShooter.speed + playerShooter.sprint : playerShooter.speed;
         
         // Appliquer le déplacement horizontal
         Vector3 move = moveDirection * currentSpeed;
@@ -161,41 +83,40 @@ public class PlayerController : MonoBehaviour,IDamageable
             StartCoroutine(JumpCorr());
         }
         
+        // Tir
+        if (Input.GetMouseButtonDown(1) && shootEnable)
+        {
+            Shoot();
+            StartCoroutine(ShootCorr());
+        }
+        
         // Appliquer la gravité
         velocity.y += gravity * Time.deltaTime;
         characterController.Move(velocity * Time.deltaTime);
         
         // Animation
-        if (horizontal == 0f && vertical == 0f)
-        {
-            animator.SetBool("isMoving", false);
-        }
-        else
-        {
-            animator.SetBool("isMoving", true);
-        }
+        animator.SetBool("isMoving", horizontal != 0f || vertical != 0f);
     }
-
+    
     IEnumerator JumpCorr()
     {
         jumpEnable = false;
-        float jumpTime = 0f;
-        while (jumpTime < 2f)
-        {
-            yield return new WaitForEndOfFrame();
-            jumpTime += Time.deltaTime;
-        }
+        yield return new WaitForSeconds(2f);
         jumpEnable = true;
     }
+    
     #endregion
     
-    #region Rotation et Caméra
+    #region Rotation
+    
     void RotatePlayer()
     {
+        if (cameraPosition == null) return;
+        
         if (rotateWithCamera)
         {
             // Le personnage tourne TOUJOURS avec la caméra (même immobile)
-            Quaternion targetRotation = Quaternion.Euler(0, rotationX, 0);
+            Quaternion targetRotation = Quaternion.Euler(0, cameraPosition.GetRotationX(), 0);
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, playerRotationSpeed * Time.deltaTime);
         }
         else
@@ -210,53 +131,52 @@ public class PlayerController : MonoBehaviour,IDamageable
         }
     }
     
-    void CalculateCameraPosition()
-    {
-        if (cam == null) return;
-        
-        // Lisser la rotation
-        smoothRotationX = Mathf.Lerp(smoothRotationX, rotationX, 10 * Time.deltaTime);
-        smoothRotationY = Mathf.Lerp(smoothRotationY, rotationY, 10 * Time.deltaTime);
-        
-        // Lisser la distance
-        currentDistance = Mathf.Lerp(currentDistance, targetDistance, 10f * Time.deltaTime);
-        
-        // Calculer la rotation en quaternion
-        Quaternion rotation = Quaternion.Euler(smoothRotationY, smoothRotationX, 0);
-        
-        // Position du pivot (au-dessus du joueur)
-        Vector3 pivotPosition = transform.position + Vector3.up * 1.5f;
-        
-        // Direction de la caméra (toujours derrière)
-        Vector3 direction = rotation * -Vector3.forward;
-        
-        // Position désirée de la caméra
-        Vector3 desiredPosition = pivotPosition + direction * currentDistance;
-        
-        // Vérifier les collisions
-        if (checkCollisions)
-        {
-            RaycastHit hit;
-            if (Physics.SphereCast(pivotPosition, collisionRadius, direction, out hit, currentDistance, collisionLayers))
-            {
-                // Ajuster la distance si obstacle détecté
-                desiredPosition = pivotPosition + direction * (hit.distance - collisionRadius);
-            }
-        }
-        
-        // Appliquer la position et la rotation
-        cam.transform.position = desiredPosition;
-        cam.transform.LookAt(pivotPosition);
-    }
     #endregion
     
     #region Interaction
-
+    
     void InitUI()
     {
-        playerUI.UpdateLife(playerShooter.lifePoints,playerShooter.maxLifePoints);
+        playerUI.UpdateLife(playerShooter.lifePoints, playerShooter.maxLifePoints);
+        playerUI.UpdateDamage(playerShooter.damage);
+        playerUI.UpdateReload(playerShooter.shootDelay);
+        playerUI.UpdateSpeed(playerShooter.speed);
     }
-
+    
+    public void ApplyHeal(int value)
+    {
+        playerShooter.lifePoints += value;
+        if (playerShooter.lifePoints >= playerShooter.maxLifePoints) 
+            playerShooter.lifePoints = playerShooter.maxLifePoints;
+        playerUI.UpdateLife(playerShooter.lifePoints, playerShooter.maxLifePoints);
+    }
+    
+    public void ApplyDamage(int value)
+    {
+        playerShooter.lifePoints -= value;
+        playerUI.UpdateLife(playerShooter.lifePoints, playerShooter.maxLifePoints);
+        
+        if (playerShooter.lifePoints <= 0)
+        {
+            animator.SetTrigger("Dying");
+            StartCoroutine(DyeCoroutine());
+        }
+    }
+    
+    IEnumerator DyeCoroutine()
+    {
+        yield return new WaitForSeconds(0.5f);
+        Destroy(gameObject);
+    }
+    
+    public void Shoot()
+    {
+        var direction = transform.rotation * Vector3.forward;
+        Bullet bull = Instantiate(bulletPrefab, transform.position + direction + Vector3.up, transform.rotation).GetComponent<Bullet>();
+        bull.Initialize(playerShooter.damage, playerShooter.bullSpeed);
+        animator.SetTrigger("Shoot");
+    }
+    
     IEnumerator ShootCorr()
     {
         shootEnable = false;
@@ -268,37 +188,27 @@ public class PlayerController : MonoBehaviour,IDamageable
         }
         shootEnable = true;
     }
-    public void ApplyDamage(int value)
+    
+    public void EnhanceDamage()
     {
-        playerShooter.lifePoints -= value;
-        playerUI.UpdateLife(playerShooter.lifePoints,playerShooter.maxLifePoints);
-
-        if (playerShooter.lifePoints <= 0)
+        playerShooter.damage++;
+        playerUI.UpdateDamage(playerShooter.damage);
+    }
+    
+    public void EnhanceReload()
+    {
+        if (playerShooter.shootDelay > 0.5f)
         {
-            animator.SetTrigger("Dying");
-            StartCoroutine(DyeCoroutine());
+            playerShooter.shootDelay -= 0.1f;
         }
+        playerUI.UpdateReload(playerShooter.shootDelay);
     }
-
-    IEnumerator DyeCoroutine()
+    
+    public void EnhanceSpeed()
     {
-        yield return new WaitForSeconds(0.5f);
-        Destroy(gameObject);
+        playerShooter.speed++;
+        playerUI.UpdateSpeed(playerShooter.speed);
     }
-
-    public void ApplyHeal(int value)
-    {
-        playerShooter.lifePoints += value;
-        if(playerShooter.lifePoints >= playerShooter.maxLifePoints) playerShooter.lifePoints = playerShooter.maxLifePoints;
-        playerUI.UpdateLife(playerShooter.lifePoints, playerShooter.maxLifePoints);
-    }
-
-    public void Shoot()
-    {
-        var direction = transform.rotation * Vector3.forward;
-        Bullet bull = Instantiate(bulletPrefab, transform.position + direction+Vector3.up, transform.rotation).GetComponent<Bullet>();
-        bull.Initialize(playerShooter.damage, playerShooter.bullSpeed);
-        animator.SetTrigger("Shoot");
-    }
+    
     #endregion
 }

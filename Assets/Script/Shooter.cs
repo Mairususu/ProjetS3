@@ -11,4 +11,6 @@ public class Shooter : MonoBehaviour
     [SerializeField] public int maxLifePoints;
     [SerializeField] public int damage;
     [SerializeField] public float bullSpeed;
+    [SerializeField] public float speed=8;
+    [SerializeField] public float sprint=5;
 }
