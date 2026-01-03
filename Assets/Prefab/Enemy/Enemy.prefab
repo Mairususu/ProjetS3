@@ -1591,6 +1591,9 @@ GameObject:
   - component: {fileID: 7205442214865190493}
   - component: {fileID: 9065145386722565067}
   - component: {fileID: 401417007147621235}
+  - component: {fileID: 3090875684557345009}
+  - component: {fileID: 5349988490812671958}
+  - component: {fileID: 6251215309861682245}
   m_Layer: 0
   m_Name: Enemy
   m_TagString: Untagged
@@ -1631,9 +1634,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 75c0c69b532fb294191d4f87bc67d43f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ui: {fileID: 5433079550739549415}
   lifepoint: 5
   maxLife: 5
+  player: {fileID: 0}
+  agent: {fileID: 0}
+  ui: {fileID: 5433079550739549415}
+  animator: {fileID: 401417007147621235}
+  bulletPrefab: {fileID: 7901308225328129506, guid: 4f54d051afc5b424390f906ed22671ec, type: 3}
+  attackRange: 10
+  shootDelay: 2
+  bulletSpeed: 10
+  damage: 2
+  obstacleMask:
+    serializedVersion: 2
+    m_Bits: 8
 --- !u!95 &401417007147621235
 Animator:
   serializedVersion: 5
@@ -1655,6 +1669,76 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!65 &3090875684557345009
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7409613152481494196}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 2.16, z: 1}
+  m_Center: {x: 0, y: 1.01, z: 0}
+--- !u!195 &5349988490812671958
+NavMeshAgent:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7409613152481494196}
+  m_Enabled: 1
+  m_AgentTypeID: 0
+  m_Radius: 0.5
+  m_Speed: 3.5
+  m_Acceleration: 8
+  avoidancePriority: 50
+  m_AngularSpeed: 120
+  m_StoppingDistance: 0
+  m_AutoTraverseOffMeshLink: 1
+  m_AutoBraking: 1
+  m_AutoRepath: 1
+  m_Height: 2
+  m_BaseOffset: 0
+  m_WalkableMask: 4294967295
+  m_ObstacleAvoidanceType: 4
+--- !u!54 &6251215309861682245
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7409613152481494196}
+  serializedVersion: 4
+  m_Mass: 1
+  m_Drag: 0
+  m_AngularDrag: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 1
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
 --- !u!1 &7423043136974262183
 GameObject:
   m_ObjectHideFlags: 0

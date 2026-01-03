@@ -48,10 +48,9 @@ public class Enemy : MonoBehaviour, IDamageable
         canFire = true;
     }
 
-    public void Initialize(float Life, float bulletSpeed, int damage)
+    public void Initialize(float Life, int damage)
     {
         lifepoint = Life;
-        this.bulletSpeed = bulletSpeed;
         this.damage = damage;
     }
     
@@ -169,6 +168,7 @@ public class Enemy : MonoBehaviour, IDamageable
         {
             animator.SetTrigger("Dying");
             dead = true;
+            Game.Instance.RemoveEnemy(this);
             Destroy(gameObject, 2f);
         }
     }

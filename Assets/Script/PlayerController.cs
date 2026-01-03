@@ -171,10 +171,36 @@ public class PlayerController : MonoBehaviour, IDamageable
     
     public void Shoot()
     {
-        var direction = transform.rotation * Vector3.forward;
-        Bullet bull = Instantiate(bulletPrefab, transform.position + direction + Vector3.up, transform.rotation).GetComponent<Bullet>();
+        // Point de départ du tir (position du joueur)
+        Vector3 shootOrigin = transform.position + Vector3.up * 1.5f+transform.forward;
+        
+        // Obtenir le centre de l'écran pour viser
+        Ray ray = Camera.main.ScreenPointToRay(new Vector3(Screen.width / 2, Screen.height / 2, 0));
+        
+        Vector3 targetPoint;
+        RaycastHit hit;
+        
+        // Raycast pour trouver où le joueur vise
+        if (Physics.Raycast(ray, out hit, 1000f))
+        {
+            // Le joueur vise quelque chose
+            targetPoint = hit.point;
+        }
+        else
+        {
+            // Le joueur vise dans le vide, utiliser un point lointain
+            targetPoint = ray.GetPoint(1000f);
+        }
+        
+        // Calculer la direction du tir
+        Vector3 shootDirection = -(targetPoint - shootOrigin).normalized;
+        
+        // Créer le projectile
+        Bullet bull = Instantiate(bulletPrefab, shootOrigin, Quaternion.LookRotation(shootDirection)).GetComponent<Bullet>();
         bull.Initialize(playerShooter.damage, playerShooter.bullSpeed);
+        
         animator.SetTrigger("Shoot");
+        
     }
     
     IEnumerator ShootCorr()
