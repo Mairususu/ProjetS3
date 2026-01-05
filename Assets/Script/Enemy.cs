@@ -103,15 +103,13 @@ public class Enemy : MonoBehaviour, IDamageable
     
     bool CheckLineOfSight()
     {
-        // Point de départ du raycast
         Vector3 startPos = transform.position;
-        // Point cible (corps du joueur)
         Vector3 targetPos = player.position + Vector3.up;
         Vector3 direction = targetPos - startPos;
         float distance = direction.magnitude;
         
         RaycastHit hit;
-        if (Physics.Raycast(startPos, direction.normalized, out hit, distance, ~0)) // ~0 = tous les layers
+        if (Physics.Raycast(startPos, direction.normalized, out hit, distance, ~0)) 
         {
             if (hit.transform == player || hit.transform.IsChildOf(player))
             {
@@ -128,9 +126,13 @@ public class Enemy : MonoBehaviour, IDamageable
     
     void Fire()
     {
-        Debug.Log("ENNEMI TIRE !");
-        var direction = transform.rotation * Vector3.forward;
-        Bullet bullet = Instantiate(bulletPrefab, transform.position + direction+Vector3.up, transform.rotation).GetComponent<Bullet>();
+        Vector3 spawnPos = transform.position + Vector3.up+Vector3.forward*1.5f; 
+        Vector3 targetPos = player.position + Vector3.up; 
+        Vector3 fireDirection = (targetPos - spawnPos).normalized;
+        Quaternion fireRotation = Quaternion.LookRotation(fireDirection);
+    
+        Bullet bullet = Instantiate(bulletPrefab, spawnPos, fireRotation).GetComponent<Bullet>();
+    
         bullet.Initialize(damage, bulletSpeed);
         animator.SetTrigger("Shoot");
         StartCoroutine(ShootCorr());
@@ -151,7 +153,7 @@ public class Enemy : MonoBehaviour, IDamageable
     void LookAtTarget(Vector3 targetPosition)
     {
         Vector3 direction = (targetPosition - transform.position).normalized;
-        direction.y = 0; // Garder l'ennemi droit
+        direction.y = 0;
         
         if (direction != Vector3.zero)
         {

@@ -5,16 +5,20 @@ using UnityEngine;
 public class PlayerController : MonoBehaviour, IDamageable
 {
     [Header("Références")]
-    [SerializeField] private CameraManager cameraPosition; // Nouveau script caméra
+    [SerializeField] private CameraManager cameraManager;
     [SerializeField] private CharacterController characterController;
     [SerializeField] private Animator animator;
     [SerializeField] private Shooter playerShooter;
     [SerializeField] private Bullet bulletPrefab;
     [SerializeField] private PlayerUI playerUI;
+    [SerializeField] private Transform bulletSpawn;
     
     [Header("Déplacement")]
     [SerializeField] private float jumpHeight = 2f;
     [SerializeField] private float gravity = -9.81f;
+    
+    [Header("Combat")]
+    [SerializeField] private float verticalAimCorrection = 0.1f; // Correction verticale de la visée (0 = pas de correction, 0.2 = vise plus haut)
     
     [Header("Rotation du personnage")]
     [SerializeField] private float playerRotationSpeed = 10f;
@@ -28,17 +32,20 @@ public class PlayerController : MonoBehaviour, IDamageable
     
     void Start()
     {
-        // Récupérer CameraPosition si non assigné
-        if (cameraPosition == null)
+        if (cameraManager == null)
         {
-            cameraPosition = FindObjectOfType<CameraManager>();
-            if (cameraPosition != null)
+            cameraManager = FindObjectOfType<CameraManager>();
+            if (cameraManager != null)
             {
-                cameraPosition.SetTarget(transform);
+                cameraManager.SetTarget(transform);
             }
         }
-        
         InitUI();
+    }
+
+    public void SetUI(PlayerUI playerUI)
+    {
+        this.playerUI = playerUI;
     }
     
     void Update()
@@ -56,23 +63,16 @@ public class PlayerController : MonoBehaviour, IDamageable
     void HandleMovement()
     {
         if (characterController == null) return;
-        
-        // Récupérer les inputs
+        //Inputs
         float horizontal = Input.GetAxis("Horizontal");
         float vertical = Input.GetAxis("Vertical");
+        Vector3 forward = cameraManager.GetForwardDirection();
+        Vector3 right = cameraManager.GetRightDirection();
         
-        // Obtenir les directions de la caméra
-        Vector3 forward = cameraPosition.GetForwardDirection();
-        Vector3 right = cameraPosition.GetRightDirection();
-        
-        // Direction de déplacement
+        // Déplacement
         moveDirection = (forward * vertical + right * horizontal).normalized;
-        
-        // Vitesse (marche ou course)
         float currentSpeed = Input.GetKey(KeyCode.LeftShift) ? 
             playerShooter.speed + playerShooter.sprint : playerShooter.speed;
-        
-        // Appliquer le déplacement horizontal
         Vector3 move = moveDirection * currentSpeed;
         characterController.Move(move * Time.deltaTime);
         
@@ -84,17 +84,14 @@ public class PlayerController : MonoBehaviour, IDamageable
         }
         
         // Tir
-        if (Input.GetMouseButtonDown(1) && shootEnable)
+        if (Input.GetMouseButtonDown(0) && shootEnable)
         {
             Shoot();
             StartCoroutine(ShootCorr());
         }
-        
-        // Appliquer la gravité
         velocity.y += gravity * Time.deltaTime;
         characterController.Move(velocity * Time.deltaTime);
         
-        // Animation
         animator.SetBool("isMoving", horizontal != 0f || vertical != 0f);
     }
     
@@ -111,17 +108,14 @@ public class PlayerController : MonoBehaviour, IDamageable
     
     void RotatePlayer()
     {
-        if (cameraPosition == null) return;
-        
+        if (cameraManager == null) return;
         if (rotateWithCamera)
         {
-            // Le personnage tourne TOUJOURS avec la caméra (même immobile)
-            Quaternion targetRotation = Quaternion.Euler(0, cameraPosition.GetRotationX(), 0);
+            Quaternion targetRotation = Quaternion.Euler(0, cameraManager.GetRotationX(), 0);
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, playerRotationSpeed * Time.deltaTime);
         }
         else
         {
-            // Ancien comportement : ne tourner que si le personnage se déplace
             if (moveDirection.magnitude > 0.1f)
             {
                 float targetAngle = Mathf.Atan2(moveDirection.x, moveDirection.z) * Mathf.Rad2Deg;
@@ -154,11 +148,12 @@ public class PlayerController : MonoBehaviour, IDamageable
     public void ApplyDamage(int value)
     {
         playerShooter.lifePoints -= value;
+        if(playerShooter.lifePoints <= 0) playerShooter.lifePoints = 0;
         playerUI.UpdateLife(playerShooter.lifePoints, playerShooter.maxLifePoints);
-        
         if (playerShooter.lifePoints <= 0)
         {
             animator.SetTrigger("Dying");
+            Game.Instance.PlayerDie();
             StartCoroutine(DyeCoroutine());
         }
     }
@@ -168,41 +163,59 @@ public class PlayerController : MonoBehaviour, IDamageable
         yield return new WaitForSeconds(0.5f);
         Destroy(gameObject);
     }
-    
+
     public void Shoot()
     {
-        // Point de départ du tir (position du joueur)
-        Vector3 shootOrigin = transform.position + Vector3.up * 1.5f+transform.forward;
+        Camera mainCam = Camera.main;
+        if (mainCam == null) return;
         
-        // Obtenir le centre de l'écran pour viser
-        Ray ray = Camera.main.ScreenPointToRay(new Vector3(Screen.width / 2, Screen.height / 2, 0));
+        if (bulletSpawn == null)
+        {
+            GameObject spawnPoint = new GameObject("BulletSpawn");
+            bulletSpawn = spawnPoint.transform;
+            bulletSpawn.SetParent(transform);
+            bulletSpawn.localPosition = new Vector3(0, 1.5f, 0.5f);
+        }
         
+        Ray ray = mainCam.ScreenPointToRay(new Vector3(Screen.width / 2, Screen.height / 2, 0));
         Vector3 targetPoint;
         RaycastHit hit;
         
-        // Raycast pour trouver où le joueur vise
-        if (Physics.Raycast(ray, out hit, 1000f))
+        Vector3 rayStart = ray.origin + ray.direction * 2f; 
+        if (Physics.Raycast(rayStart, ray.direction, out hit, 1000f))
         {
-            // Le joueur vise quelque chose
             targetPoint = hit.point;
         }
         else
         {
-            // Le joueur vise dans le vide, utiliser un point lointain
-            targetPoint = ray.GetPoint(1000f);
+            targetPoint = ray.origin + ray.direction * 1000f;
         }
         
-        // Calculer la direction du tir
-        Vector3 shootDirection = -(targetPoint - shootOrigin).normalized;
+        // VÉRIFICATION : Si le target est derrière le bulletSpawn, utiliser la direction de la caméra
+        Vector3 shootDirection = (targetPoint - bulletSpawn.position).normalized;
+        if (Vector3.Dot(shootDirection, transform.forward) < 0)
+        {
+            shootDirection = ray.direction;
+        }
         
-        // Créer le projectile
-        Bullet bull = Instantiate(bulletPrefab, shootOrigin, Quaternion.LookRotation(shootDirection)).GetComponent<Bullet>();
-        bull.Initialize(playerShooter.damage, playerShooter.bullSpeed);
-        
+        // CORRECTION VERTICALE : Ajuster légèrement la direction vers le haut
+        if (verticalAimCorrection != 0)
+        {
+            Vector3 horizontalDir = new Vector3(shootDirection.x, 0, shootDirection.z).normalized;
+            float currentVertical = shootDirection.y;
+            float newVertical = currentVertical + verticalAimCorrection;
+            
+            shootDirection = new Vector3(
+                horizontalDir.x * Mathf.Sqrt(1 - newVertical * newVertical),
+                newVertical,
+                horizontalDir.z * Mathf.Sqrt(1 - newVertical * newVertical)
+            ).normalized;
+        }
+        Quaternion bulletRotation = Quaternion.LookRotation(shootDirection);
+         Instantiate(bulletPrefab, bulletSpawn.position, bulletRotation);
         animator.SetTrigger("Shoot");
-        
     }
-    
+
     IEnumerator ShootCorr()
     {
         shootEnable = false;

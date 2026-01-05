@@ -86,8 +86,8 @@ public class CameraManager : MonoBehaviour
             Cursor.visible = true;
         }
         
-        // Reverrouiller avec clic gauche
-        if (Input.GetMouseButtonDown(0))
+        // Reverrouiller avec clic droit
+        if (Input.GetMouseButtonDown(1))
         {
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
