@@ -1,6 +1,9 @@
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using Unity.VisualScripting;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 public class Game : MonoBehaviour
 {
@@ -13,6 +16,7 @@ public class Game : MonoBehaviour
     [SerializeField] private List<Transform> SpawnPoints;
     [SerializeField] private Transform spawnContainer;
     private List<Enemy> _enemies = new();
+    private bool spawnable=true;
     public static Game Instance;
     [Header("Bonus")]
     [SerializeField] private GameObject healthItem;
@@ -45,14 +49,30 @@ public class Game : MonoBehaviour
 
     private void Update()
     {
-        if (_enemies.Count ==0)
+        if (_enemies.Count ==0 && spawnable)
         {
             round++;
+            spawnable=false;
             Debug.Log("Here we go: round"+ round);
             gameUI.UpdateRound(round);
             SpawnHealth();
-            SpawnEnemy();
+            StartCoroutine(TrannsitionCoroutine());
         }
+    }
+
+    IEnumerator TrannsitionCoroutine()
+    {
+        gameUI.ShowTransitionPanel();
+        float time = 5;
+        gameUI.UpdateTransition(time);
+        while (time > 0)
+        {
+            yield return new WaitForSeconds(1f);
+            time--;
+            gameUI.UpdateTransition(time);
+        }
+        gameUI.HideTransitionPanel();
+        SpawnEnemy();
     }
 
     private void SpawnEnemy()
@@ -63,7 +83,7 @@ public class Game : MonoBehaviour
             enemy.Initialize((round+1)*5,round+2);
             _enemies.Add(enemy);
         }
-        
+        spawnable=true;
     }
 
     private void SpawnHealth()
@@ -88,7 +108,7 @@ public class Game : MonoBehaviour
         enemyKilled++;
         score+=round*10;
         gameUI.UpdateAll(score,enemyKilled,round);
-        if (Random.Range(0, 100) < 50)
+        if (Random.Range(0, 100) < 10)
         {
             SpawnBonus(enemy.transform);
         }

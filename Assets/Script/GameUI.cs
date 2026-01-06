@@ -10,6 +10,9 @@ public class GameUI : MonoBehaviour
     [SerializeField] private TMP_Text scoreText;
     [SerializeField] private TMP_Text killedText;
     [SerializeField] private TMP_Text roundText;
+    [Header("Transition")]
+    [SerializeField] private GameObject transitionPanel;
+    [SerializeField] private TMP_Text transitionText;
     [Header("HighScore UI")]
     [SerializeField] private TMP_Text highRoundText;
     [SerializeField] private TMP_Text highScoreText;
@@ -25,6 +28,7 @@ public class GameUI : MonoBehaviour
     {
         menuPanel.SetActive(false);
         deathPanel.SetActive(false);
+        transitionPanel.SetActive(false);
     }
 
     void Update()
@@ -99,6 +103,22 @@ public class GameUI : MonoBehaviour
     {
         Time.timeScale = 1; 
         deathPanel.SetActive(false);
+    }
+    #endregion
+    #region Transition
+
+    public void ShowTransitionPanel()
+    {
+        transitionPanel.SetActive(true);
+    }
+
+    public void UpdateTransition(float time)
+    {
+        transitionText.text = time.ToString();
+    }
+    public void HideTransitionPanel()
+    {
+        transitionPanel.SetActive(false);
     }
     #endregion
 }

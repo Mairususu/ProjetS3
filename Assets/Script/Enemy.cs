@@ -15,7 +15,7 @@ public class Enemy : MonoBehaviour, IDamageable
     [SerializeField] private EnemyUI ui;
     [SerializeField] private Animator animator;
     [SerializeField] private GameObject bulletPrefab;
-    
+    [SerializeField] private Transform spawnPos;
     [Header("Statistique")]
     [SerializeField] private float attackRange = 10f; 
     [SerializeField] private float shootDelay=2f;
@@ -126,12 +126,11 @@ public class Enemy : MonoBehaviour, IDamageable
     
     void Fire()
     {
-        Vector3 spawnPos = transform.position + Vector3.up+Vector3.forward*1.5f; 
         Vector3 targetPos = player.position + Vector3.up; 
-        Vector3 fireDirection = (targetPos - spawnPos).normalized;
+        Vector3 fireDirection = (targetPos - spawnPos.position).normalized;
         Quaternion fireRotation = Quaternion.LookRotation(fireDirection);
     
-        Bullet bullet = Instantiate(bulletPrefab, spawnPos, fireRotation).GetComponent<Bullet>();
+        Bullet bullet = Instantiate(bulletPrefab, spawnPos.position, fireRotation).GetComponent<Bullet>();
     
         bullet.Initialize(damage, bulletSpeed);
         animator.SetTrigger("Shoot");
