@@ -10207,11 +10207,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2034010759}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
---- !u!4 &2037875218 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 5330817803619934643, guid: 968baefe49c3c6c488cc123fae396c9c, type: 3}
-  m_PrefabInstance: {fileID: 7906661676371572585}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &2080413267
 GameObject:
   m_ObjectHideFlags: 0
@@ -10416,10 +10411,6 @@ PrefabInstance:
       propertyPath: playerUI
       value: 
       objectReference: {fileID: 393343610}
-    - target: {fileID: 6013739256139286707, guid: 968baefe49c3c6c488cc123fae396c9c, type: 3}
-      propertyPath: bulletSpawn
-      value: 
-      objectReference: {fileID: 2037875218}
     - target: {fileID: 6879963100737651780, guid: 968baefe49c3c6c488cc123fae396c9c, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0

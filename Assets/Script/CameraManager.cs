@@ -96,23 +96,14 @@ public class CameraManager : MonoBehaviour
     
     void CalculateCameraPosition()
     {
-        // Lisser la rotation
+        // Lissage
         smoothRotationX = Mathf.Lerp(smoothRotationX, rotationX, 10f * Time.deltaTime);
         smoothRotationY = Mathf.Lerp(smoothRotationY, rotationY, 10f* Time.deltaTime);
-        
-        // Lisser la distance
         currentDistance = Mathf.Lerp(currentDistance, targetDistance, 10f* Time.deltaTime);
         
-        // Calculer la rotation en quaternion
         Quaternion rotation = Quaternion.Euler(smoothRotationY, smoothRotationX, 0);
-        
-        // Position du pivot (au-dessus du joueur)
         Vector3 pivotPosition = target.position + Vector3.up * 1.5f;
-        
-        // Direction de la caméra (toujours derrière)
         Vector3 direction = rotation * -Vector3.forward;
-        
-        // Position désirée de la caméra
         Vector3 desiredPosition = pivotPosition + direction * currentDistance;
         
         // Vérifier les collisions

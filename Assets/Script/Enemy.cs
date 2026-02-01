@@ -31,13 +31,11 @@ public class Enemy : MonoBehaviour, IDamageable
     
     void Start()
     {
-        // Récupérer les composants
         if (agent == null)
             agent = GetComponent<NavMeshAgent>();
             
         if (player == null)
             player = GameObject.FindGameObjectWithTag("Player")?.transform;
-        // Vérifier NavMesh
         if (agent != null && !agent.isOnNavMesh)
         {
             Debug.LogError("L'ennemi " + gameObject.name + " n'est pas sur le NavMesh !");

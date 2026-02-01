@@ -512,9 +512,10 @@ MonoBehaviour:
   playerShooter: {fileID: 2209654923587536599}
   bulletPrefab: {fileID: 970011178158149546, guid: 4f54d051afc5b424390f906ed22671ec, type: 3}
   playerUI: {fileID: 0}
-  bulletSpawn: {fileID: 0}
+  bulletSpawn: {fileID: 5330817803619934643}
   jumpHeight: 2
   gravity: -9.81
+  verticalAimCorrection: 0.1
   playerRotationSpeed: 10
   rotateWithCamera: 1
 --- !u!114 &2209654923587536599
